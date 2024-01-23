@@ -28,6 +28,7 @@ module: de_virtual_cluster
 short_description: Create or delete CDP Data Engineering Virtual Clusters
 description:
     - Create or delete CDP Data Engineering Virtual Clusters 
+    - Form Factors: Public, Private
 author:
   - "Curtis Howard (@curtishoward)"
 requirements:
@@ -53,6 +54,11 @@ options:
       - Memory requests for autoscaling - eg. 30Gi.
     type: str
     required: False
+  form_factor:
+    description:
+      - public(def) or private
+    type: str
+    required: False  
   runtime_spot_component:
     description:
       - Used to describe where the Driver and the Executors would run, on-demand or spot instances.
@@ -70,7 +76,8 @@ options:
     required: False
   chart_value_overrides:
     description:
-    - Chart overrides for creating a virtual cluster. 
+    - Helm Chart overrides for creating a virtual cluster. 
+    - Form Factor: private
     type: list
     required: False
     suboptions:
@@ -79,6 +86,34 @@ options:
           - The key/value pair for the chart_name/override
         type: str
         required: False
+  gpu_requests:
+    description:
+    - GPU requests for autoscaling.
+    type: int
+    required: False   
+  guaranteed_cpu_requests:
+    description:
+      - Guaranteed CPU requests for an Elastic Virtual Cluster
+      - Form Factor: private
+    type: str
+    required: False
+  guaranteed_memory_requests:
+    description:
+      - Guaranteed Memory requests for an Elastic Virtual Cluster - eg 30Gi
+      - Form Factor: private
+    type: str
+    required: False
+  guaranteed_gpu_requests:
+    description:
+      - Guaranteed GPU requests for an Elastic Virtual Cluster
+      - Form Factor: private
+    type: str
+    required: False
+  vc_tier:
+    description:
+      - supported tiers are CORE(batch mode) and ALLP(batch & interactive)
+    type: str
+    required: False
   state:
     description:
       - The declarative state of the CDE virtual cluster 
@@ -125,6 +160,24 @@ EXAMPLES = r'''
     wait: True
     delay: 30
     timeout: 600
+
+## Private Cloud Examples
+
+# Create a CDE virtual cluster
+- cloudera.cloud.de_virtual_cluster:
+    name: virtual-cluster-name
+    cluster_name: cde-service-name
+    env: cdp-environment-name
+    form_factor: 'private'
+    cpu_requests: '18'
+    memory_requests: '30Gi'
+    spark_version: 'SPARK3'
+    vc_tier = 'CORE'    
+    state: present
+    wait: True
+    delay: 30
+    timeout: 600
+
 '''
 
 
@@ -222,6 +275,10 @@ virtual_cluster:
               description: The Memory requests for VC for running spark jobs.
               returned: always
               type: str
+            gpuRequests:
+              description: The GPU Requests for VC for running spark jobs.
+              returned: always
+              type: str
     safariUrl:
       description: Safari URL for the Virtual Cluster
       returned: always
@@ -232,6 +289,10 @@ virtual_cluster:
       type: str
     status:
       description: Status of the Virtual Cluster
+      returned: always
+      type: str
+    vcTier:
+      description: Tier of the Virtual Cluster
       returned: always
       type: str
     vcApiUrl:
@@ -259,10 +320,15 @@ class DEVirtualCluster(CdpModule):
 
         self.cpu_requests = self._get_param('cpu_requests')
         self.memory_requests = self._get_param('memory_requests')
+        self.gpu_requests = self._get_param('gpu_requests')
+        self.guaranteed_cpu_requests = self._get_param('guaranteed_cpu_requests')
+        self.guaranteed_memory_requests = self._get_param('guaranteed_memory_requests')
+        self.guaranteed_gpu_requests = self._get_param('guaranteed_gpu_requests')
         self.chart_value_overrides = self._get_param('chart_value_overrides')
         self.runtime_spot_component = self._get_param('runtime_spot_component')
         self.spark_version = self._get_param('spark_version')
         self.acl_users = self._get_param('acl_users')
+        self.vc_tier = self._get_param('vc_tier')
 
         self.state = self._get_param('state')
         self.force = self._get_param('force')
@@ -357,10 +423,15 @@ class DEVirtualCluster(CdpModule):
             cluster_id=self.cluster_id,
             cpu_requests=self.cpu_requests,
             memory_requests=self.memory_requests,
+            gpu_requests=self.gpu_requests,
+            guaranteed_cpu_requests=self.guaranteed_cpu_requests,
+            guaranteed_memory_requests=self.guaranteed_memory_requests,
+            guaranteed_gpu_requests=self.guaranteed_gpu_requests,
             chart_value_overrides=self.chart_value_overrides,
             runtime_spot_component=self.runtime_spot_component,
             spark_version=self.spark_version,
-            acl_users=self.acl_users
+            acl_users=self.acl_users,
+            vc_tier=self.vc_tier
         )
         return_desc = None
         if result and result['vcId']:
@@ -402,10 +473,16 @@ def main():
             cluster_name=dict(required=True, type='str', aliases=['service_name']),
             cpu_requests=dict(required=False, type='str', default=None),
             memory_requests=dict(required=False, type='str', default=None),
+            form_factor=dict(required=False, type='str', default='public'),
+            gpu_requests=dict(required=False, type='str', default=None),
+            guaranteed_cpu_requests=dict(required=False, type='str', default=None),
+            guaranteed_memory_requests=dict(required=False, type='str', default=None),
+            guaranteed_gpu_requests=dict(required=False, type='str', default=None),
             chart_value_overrides=dict(required=False, type='list', default=None),
             runtime_spot_component=dict(required=False, type='str', default=None),
             spark_version=dict(required=False, type='str', default=None),
             acl_users=dict(required=False, type='str', default=None),
+            vc_tier=dict(required=False, type='str', default=None),            
             state=dict(required=False, type='str', choices=['present', 'absent'], default='present'),
             wait=dict(required=False, type='bool', default=True),
             delay=dict(required=False, type='int', aliases=['polling_delay'], default=30),

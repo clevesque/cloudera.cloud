@@ -28,6 +28,7 @@ module: de_info
 short_description: Gather information about CDP DE Workspaces
 description:
     - Gather information about CDP DE Workspaces
+    - Form Factors: Public, Private
 author:
   - "Curtis Howard (@curtishoward)"
   - "Alan Silva (@acsjumpi)"

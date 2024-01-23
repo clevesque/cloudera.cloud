@@ -28,6 +28,7 @@ module: de
 short_description: Enable and Disable CDP Data Engineering Services
 description:
     - Enable or Disable CDP Data Engineering Service
+    - Form Factors: Public, Private
 author:
   - "Curtis Howard (@curtishoward)"
   - "Alan Silva (@acsjumpi)"
@@ -48,20 +49,28 @@ options:
     required: True
     aliases:
       - env
+  form_factor: 
+    description:
+      - "public"(default), PrivateCloud use must set "private"
+    type: str
+    required: False
   instance_type:
     description:
       - Instance type of the cluster for CDE Service
       - For example, (AWS) C(m5.2xlarge)
+      - For PrivateCloud set "private"
     type: str
     required: False
   minimum_instances:
     description:
     - Minimum Instances for the CDE Service
+    - For PrivateCloud set 0
     type: int
     required: False
   maximum_instances:
     description:
     - Maximum Instances for the CDE Service
+    - For PrivateCloud set  0
     type: int
     required: False
   minimum_spot_instances:
@@ -149,6 +158,47 @@ options:
     type: list
     elements: str
     required: False
+  subnets:
+    description:
+      - List of Subnet IDs of CDP subnets to use for the kubernetes worker node
+    type: list
+    elements: str
+    required: False
+  network_outbound_type:
+    description:
+      - Network outbound type. Currently ‘udr’ is the only supported
+    type: str
+    required: False
+  cpu_requests:
+    description:
+      - Cpu requests for autoscaling
+      - Form Factor: private
+    type: str
+    required: False
+  memory_requests:
+    description:
+      - Memory requests for autoscaling - eg. 30Gi
+      - Form Factor: private
+    type: str
+    required: False
+  gpu_requests:
+    description:
+      - Gpu requests for autoscaling - eg. 30Gi
+      - Form Factor: private
+    type: str
+    required: False
+  resource_pool:
+    description:
+      - Resource Pool for the CDE service
+      - Form Factor: private
+    type: str
+    required: False
+  nfs_storage_class:
+    description:
+      - NFS Storage class to override the default storage class
+      - Form Factor: private
+    type: str
+    required: False  
   force:
     description:
       - Flag to force delete a service even if errors occur during deletion.
@@ -208,6 +258,31 @@ EXAMPLES = r'''
     env: cdp-environment-name
     state: absent
     wait: no
+
+## Private Cloud examples
+# Create a DE service on Private Cloud using defaults for optional parameters and wait for completion
+- cloudera.cloud.de:
+    name: cde-cloudera-deploy-example
+    env: cdp-environment-name
+    form_factor: "private"
+    instance_type: "private"
+    minimum_instances: 0
+    maximum_instances: 0 
+    cpu_requests: "16"
+    memory_requests: "32Gi"
+    gpu_requests: "0"
+    resource_pool: "root"
+    state: present
+    wait: yes
+
+# Remove a DE service from Private Cloud without waiting
+- cloudera.cloud.de:
+    name: cde-cloudera-deploy-example+
+    env: cdp-environment-name
+    form_factor: "private"
+    state: absent
+    wait: no
+
 '''
 
 RETURN = r'''
@@ -361,7 +436,15 @@ class DEService(CdpModule):
         self.use_ssd = self._get_param('use_ssd')
         self.whitelist_ips = self._get_param('whitelist_ips')
         self.loadbalancer_ips = self._get_param('loadbalancer_ips')
-
+        self.subnets = self._get_param('subnets')
+        self.network_outbound_type = self._get_param('network_outbound_type')
+        
+        self.cpu_requests = self._get_param('cpu_requests')
+        self.memory_requests = self._get_param('memory_requests')
+        self.gpu_requests = self._get_param('gpu_requests')
+        self.resource_pool = self._get_param('resource_pool')
+        self.nfs_storage_class = self._get_param('nfs_storage_class')
+        
         self.state = self._get_param('state')
         self.force = self._get_param('force')
         self.wait = self._get_param('wait')
@@ -463,7 +546,14 @@ class DEService(CdpModule):
             skip_validation=self.skip_validation,
             tags=self.tags,
             use_ssd=self.use_ssd,
-            whitelist_ips=self.whitelist_ips
+            whitelist_ips=self.whitelist_ips,
+            subnets=self.subnets,
+            network_outbound_type=self.network_outbound_type,
+            cpu_requests=self.cpu_requests,
+            memory_requests=self.memory_requests,
+            gpu_requests=self.gpu_requests,
+            resource_pool=self.resource_pool,
+            nfs_storage_class=self.nfs_storage_class
         )
         return_desc = None
         if result and result['clusterId']:
@@ -502,6 +592,7 @@ def main():
         argument_spec=CdpModule.argument_spec(
             name=dict(required=True, type='str'),
             environment=dict(required=True, type='str', aliases=['env']),
+            form_factor=dict(required=False, type='str', default='public'),
             instance_type=dict(required=False, type='str'),
             minimum_instances=dict(required=False, type='int', default=1),
             maximum_instances=dict(required=False, type='int', default=4),
@@ -519,6 +610,13 @@ def main():
             tags=dict(required=False, type='dict', default=None),
             use_ssd=dict(required=False, type='bool', default=True),
             whitelist_ips=dict(required=False, type='list', elements='str', default=None),
+            subnets=dict(required=False, type='list', elements='str', default=None),
+            network_outbound_type=dict(required=False, type='str', default=None),
+            cpu_requests=dict(required=False, type='str', default=None),
+            memory_requests=dict(required=False, type='str', default=None),
+            gpu_requests=dict(required=False, type='str', default=None),
+            resource_pool=dict(required=False, type='str', default=None),
+            nfs_storage_class=dict(required=False, type='str', default=None),
             force=dict(required=False, type='bool', default=False, aliases=['force_delete']),
             state=dict(required=False, type='str', choices=['present', 'absent'], default='present'),
             wait=dict(required=False, type='bool', default=True),

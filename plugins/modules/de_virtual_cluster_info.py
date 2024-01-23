@@ -28,6 +28,7 @@ module: de_virtual_cluster_info
 short_description: Gather information about CDP DE virtual clusters
 description:
     - Gather information about CDP DE virtual clusters
+    - Form Factors: Public, Private
 author:
   - "Curtis Howard (@curtishoward)"
 requirements:
