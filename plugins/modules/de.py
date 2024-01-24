@@ -268,10 +268,11 @@ EXAMPLES = r'''
     instance_type: "private"
     minimum_instances: 0
     maximum_instances: 0 
+    initial_instances: 0
     cpu_requests: "16"
-    memory_requests: "32Gi"
+    memory_requests: "48Gi"
     gpu_requests: "0"
-    resource_pool: "root"
+    resource_pool: "root.default"
     state: present
     wait: yes
 
