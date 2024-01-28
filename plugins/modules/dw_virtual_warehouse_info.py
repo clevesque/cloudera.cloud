@@ -205,10 +205,13 @@ class DwVirtualWarehouseInfo(CdpModule):
                 for vw in vws:
                     if vw['name'] == self.name:
                         self.virtual_warehouses.append(
-                          self.cdpy.dw.describe_vw(cluster_id=self.cluster_id, vw_id=vw['id'])
+                            self.cdpy.dw.describe_vw(cluster_id=self.cluster_id, vw_id=vw['id'])
                         )
             elif self.catalog_id is not None:
-                self.virtual_warehouses =[v for v in vws if v['dbcId'] == self.catalog_id]
+                self.virtual_warehouses = []
+                for v in vws:
+                    if v['dbcId'] == self.catalog_id:
+                        self.virtual_warehouses.append(v)
             else:
                 self.virtual_warehouses = vws
 

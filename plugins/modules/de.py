@@ -411,6 +411,7 @@ service:
       type: str
 '''
 
+
 class DEService(CdpModule):
     def __init__(self, module):
         super(DEService, self).__init__(module)
@@ -572,13 +573,15 @@ class DEService(CdpModule):
     def _disable_service(self):
         self.cdpy.de.disable_service(self.cluster_id)
         if self.wait:
-            current_desc = self._wait_for_state(self.cdpy.sdk.STOPPED_STATES)
-            if current_desc['status'] not in self.cdpy.sdk.STOPPED_STATES:
+            current_desc: str = self._wait_for_state(self.cdpy.sdk.STOPPED_STATES)
+            if current_desc["status"] in self.cdpy.sdk.STOPPED_STATES:
+                pass
+            else:
                 self.module.warn("DE service did not disable successfully")
             return current_desc
         else:
-            current_desc = self.cdpy.de.describe_service(self.cluster_id)
-            return (current_desc if current_desc not in self.cdpy.sdk.STOPPED_STATES else None)
+            current_desc: str = self.cdpy.de.describe_service(self.cluster_id)
+            return current_desc if current_desc not in self.cdpy.sdk.STOPPED_STATES else None
 
     def _wait_for_state(self, state):
         return self.cdpy.sdk.wait_for_state(

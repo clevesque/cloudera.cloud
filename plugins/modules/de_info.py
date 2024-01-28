@@ -232,6 +232,7 @@ class DEInfo(CdpModule):
         else:
             self.services.extend(service_list)
 
+
 def main():
     module = AnsibleModule(
         argument_spec=CdpModule.argument_spec(

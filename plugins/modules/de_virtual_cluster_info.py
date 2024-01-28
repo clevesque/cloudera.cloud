@@ -218,6 +218,7 @@ class DEVirtualClusterInfo(CdpModule):
             else:
                 self.vcs.extend(vcs)
 
+
 def main():
     module = AnsibleModule(
         argument_spec=CdpModule.argument_spec(
